@@ -1,3 +1,5 @@
+# KTG's bitmex market maker
+
 from __future__ import absolute_import
 from time import sleep
 import sys
@@ -14,6 +16,7 @@ from market_maker.utils import log, constants, errors, math
 
 # Used for reloading the bot - saves modified times of key files
 import os
+import threading
 watched_files_mtimes = [(f, getmtime(f)) for f in settings.WATCHED_FILES]
 
 
@@ -220,25 +223,49 @@ class OrderManager:
         self.reset()
 
     def reset(self):
-        self.exchange.cancel_all_orders()
-        self.sanity_check()
+        #self.exchange.cancel_all_orders()
         self.print_status()
+        self.sanity_check()
+        #self.print_status()
 
         # Create orders and converge.
         self.place_orders()
 
     def print_status(self):
-        """Print the current MM status."""
+        """Print the current MM status."""        
 
         margin = self.exchange.get_margin()
         position = self.exchange.get_position()
         self.running_qty = self.exchange.get_delta()
         tickLog = self.exchange.get_instrument()['tickLog']
         self.start_XBt = margin["marginBalance"]
+        
+        balance = XBt_to_XBT(self.start_XBt) #####
+#        spot = self.exchange.get_instrument()['indicativeSettlePrice'] #####
+#        logger.info("Spot: %f" % spot) #####
+        markPrice = self.exchange.get_instrument()['markPrice']
+        logger.info('markPrice: %s' % markPrice)
+        logger.info("Current USD Balance: %.2f" % (balance * markPrice)) #####
 
-        logger.info("Current XBT Balance: %.6f" % XBt_to_XBT(self.start_XBt))
+        fundingRate = self.exchange.get_instrument()['fundingRate']
+        if fundingRate >= 0: # longs pay shorts (normal)
+            self.ideal_qty_min = -balance * markPrice
+            self.ideal_qty_max = 0
+        else:
+            self.ideal_qty_min = -balance * markPrice
+            self.ideal_qty_max = 0
+        
+        logger.info("Current XBT Balance: %.6f" % balance)
         logger.info("Current Contract Position: %d" % self.running_qty)
         if settings.CHECK_POSITION_LIMITS:
+#            settings.MIN_POSITION = -balance * markPrice # no effective short position
+#            settings.MAX_POSITION = 0 # no long position
+
+#            settings.MIN_POSITION = -balance * markPrice * 2 # -2x leverage
+#            settings.MAX_POSITION = balance * markPrice      # 1x leverage
+
+            settings.MIN_POSITION = -balance * markPrice * (settings.POSITION_MULTIPLIER + 1)
+            settings.MAX_POSITION = balance * markPrice * (settings.POSITION_MULTIPLIER - 1)
             logger.info("Position limits: %d/%d" % (settings.MIN_POSITION, settings.MAX_POSITION))
         if position['currentQty'] != 0:
             logger.info("Avg Cost Price: %.*f" % (tickLog, float(position['avgCostPrice'])))
@@ -266,9 +293,16 @@ class OrderManager:
                 self.start_position_sell = ticker["sell"]
 
         # Back off if our spread is too small.
-        if self.start_position_buy * (1.00 + settings.MIN_SPREAD) > self.start_position_sell:
-            self.start_position_buy *= (1.00 - (settings.MIN_SPREAD / 2))
-            self.start_position_sell *= (1.00 + (settings.MIN_SPREAD / 2))
+        min_spread_buy = min_spread_sell = settings.MIN_SPREAD / 2
+        if settings.MANAGE_INVENTORY:
+            if self.running_qty < self.ideal_qty_min: # inventory management
+                min_spread_buy /= 2
+            if self.running_qty > self.ideal_qty_max:
+                min_spread_sell /= 2
+        
+        if self.start_position_buy * (1.00 + min_spread_buy + min_spread_sell) > self.start_position_sell:
+            self.start_position_buy *= (1.00 - min_spread_buy)
+            self.start_position_sell *= (1.00 + min_spread_sell)
 
         # Midpoint, used for simpler order placement.
         self.start_position_mid = ticker["mid"]
@@ -284,9 +318,26 @@ class OrderManager:
     def get_price_offset(self, index):
         """Given an index (1, -1, 2, -2, etc.) return the price for that side of the book.
            Negative is a buy, positive is a sell."""
+       
+        markPrice = self.exchange.get_instrument()['markPrice'] #####
+        interval = settings.INTERVAL
+        # inventory management
+        if settings.MANAGE_INVENTORY:
+            if index<0:
+                if self.running_qty < self.ideal_qty_min: # sell position is too much
+                    interval /= 2
+            else:
+                if self.running_qty > self.ideal_qty_max:
+                    interval /= 2
+                    
         # Maintain existing spreads for max profit
         if settings.MAINTAIN_SPREADS:
             start_position = self.start_position_buy if index < 0 else self.start_position_sell
+            
+            ##### Ensure minimum profit
+            if settings.CONSIDER_MARK_PRICE:
+                start_position = min(start_position, markPrice) if index < 0 else max(start_position, markPrice)
+            
             # First positions (index 1, -1) should start right at start_position, others should branch from there
             index = index + 1 if index < 0 else index - 1
         else:
@@ -300,8 +351,12 @@ class OrderManager:
             # Same for buys.
             if index < 0 and start_position > self.start_position_sell:
                 start_position = self.start_position_buy
+            
+            ##### Ensure minimum profit
+            if settings.CONSIDER_MARK_PRICE:
+                start_position = min(start_position, markPrice) if index < 0 else max(start_position, markPrice)
 
-        return math.toNearest(start_position * (1 + settings.INTERVAL) ** index, self.instrument['tickSize'])
+        return math.toNearest(start_position * (1 + interval) ** index, self.instrument['tickSize'])
 
     ###
     # Orders
@@ -325,14 +380,25 @@ class OrderManager:
         return self.converge_orders(buy_orders, sell_orders)
 
     def prepare_order(self, index):
-        """Create an order object."""
+        """Create an order object."""        
+        price = self.get_price_offset(index)
+        # Accounts with too many open orders with a gross value less than 0.0025 XBT each will be labeled as a Spam Account.
+        lotSize = self.exchange.get_instrument()['lotSize']
+        # print("lotSize:", lotSize) # XBT: 100. https://www.bitmex.com/api/explorer/#!/Instrument/Instrument_get
+        minimumqty = max(math.toNearest(int(0.0025 * price + 1), lotSize), lotSize)
 
         if settings.RANDOM_ORDER_SIZE is True:
             quantity = random.randint(settings.MIN_ORDER_SIZE, settings.MAX_ORDER_SIZE)
         else:
             quantity = settings.ORDER_START_SIZE + ((abs(index) - 1) * settings.ORDER_STEP_SIZE)
 
-        price = self.get_price_offset(index)
+        if index>0: # sell
+            quantity = int(min(quantity, self.running_qty - settings.MIN_POSITION))                
+        else: # buy
+            quantity = int(min(quantity, settings.MAX_POSITION - self.running_qty))
+
+        if quantity < minimumqty: # anti-spam
+            quantity = minimumqty
 
         return {'price': price, 'orderQty': quantity, 'side': "Buy" if index < 0 else "Sell"}
 
@@ -348,6 +414,8 @@ class OrderManager:
         buys_matched = 0
         sells_matched = 0
         existing_orders = self.exchange.get_orders()
+        #####
+        markPrice = self.exchange.get_instrument()['markPrice']
 
         # Check all existing orders and match them up with what we want to place.
         # If there's an open one, we might be able to amend it to fit what we want.
@@ -362,11 +430,21 @@ class OrderManager:
 
                 # Found an existing order. Do we need to amend it?
                 if desired_order['orderQty'] != order['leavesQty'] or (
-                        # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
-                        desired_order['price'] != order['price'] and
-                        abs((desired_order['price'] / order['price']) - 1) > settings.RELIST_INTERVAL):
-                    to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
+                    # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
+                    desired_order['price'] != order['price'] and
+                    abs((desired_order['price'] / order['price']) - 1) > settings.RELIST_INTERVAL):                
+                        to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
                                      'price': desired_order['price'], 'side': order['side']})
+                else:
+                    # buy order is above markPrice or sell order is below markPrice #####
+                    if settings.CONSIDER_MARK_PRICE:
+                        if order['side'] == 'Buy' and order['price'] > markPrice:
+                            to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
+                                             'price': math.toNearest(markPrice - self.instrument['tickSize'] / 2, self.instrument['tickSize']), 'side': order['side']})
+                        elif order['side'] == 'Sell' and order['price'] < markPrice:
+                            to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
+                                             'price': math.toNearest(markPrice + self.instrument['tickSize'] / 2, self.instrument['tickSize']), 'side': order['side']})
+
             except IndexError:
                 # Will throw if there isn't a desired order to match. In that case, cancel it.
                 to_cancel.append(order)
@@ -426,14 +504,16 @@ class OrderManager:
         if not settings.CHECK_POSITION_LIMITS:
             return False
         position = self.exchange.get_delta()
-        return position <= settings.MIN_POSITION
+#        return position <= settings.MIN_POSITION
+        return position - settings.ORDER_START_SIZE <= settings.MIN_POSITION
 
     def long_position_limit_exceeded(self):
         """Returns True if the long position limit is exceeded"""
         if not settings.CHECK_POSITION_LIMITS:
             return False
         position = self.exchange.get_delta()
-        return position >= settings.MAX_POSITION
+#        return position >= settings.MAX_POSITION
+        return position + settings.ORDER_START_SIZE >= settings.MAX_POSITION
 
     ###
     # Sanity
@@ -485,9 +565,10 @@ class OrderManager:
         return self.exchange.is_open()
 
     def exit(self):
-        logger.info("Shutting down. All open orders will be cancelled.")
+        #logger.info("Shutting down. All open orders will be cancelled.")
+        logger.info("Shutting down. All open orders will be remaining.")
         try:
-            self.exchange.cancel_all_orders()
+            #self.exchange.cancel_all_orders()
             self.exchange.bitmex.exit()
         except errors.AuthenticationError as e:
             logger.info("Was not authenticated; could not cancel orders.")
@@ -510,8 +591,9 @@ class OrderManager:
                 logger.error("Realtime data connection unexpectedly closed, restarting.")
                 self.restart()
 
-            self.sanity_check()  # Ensures health of mm - several cut-out points here
             self.print_status()  # Print skew, delta, etc
+            self.sanity_check()  # Ensures health of mm - several cut-out points here
+            #self.print_status()  # Print skew, delta, etc
             self.place_orders()  # Creates desired orders and converges to existing orders
 
     def restart(self):
@@ -540,7 +622,11 @@ def margin(instrument, quantity, price):
 def run():
     logger.info('BitMEX Market Maker Version: %s\n' % constants.VERSION)
 
+    # timeout
+    q=threading.Timer(settings.TIMEOUT, os._exit, [0])
+    q.start()
     om = OrderManager()
+    q.cancel()
     # Try/except just keeps ctrl-c from printing an ugly stacktrace
     try:
         om.run_loop()
