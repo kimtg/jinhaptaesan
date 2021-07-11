@@ -183,6 +183,8 @@ Common errors we've seen:
 * `TypeError: __init__() got an unexpected keyword argument 'json'`
   * This is caused by an outdated version of `requests`. Run `pip install -U requests` to update.
 
+* `__on_open() takes 1 positional argument but 2 were given`
+  * This is caused by a different version of `websocket-client`. Run `pip install websocket-client===0.56.0`.
 
 ## Compatibility
 
