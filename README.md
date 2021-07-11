@@ -1,6 +1,14 @@
 # BitMEX Market Maker
 
-This is a sample market making bot for use with [BitMEX](https://www.bitmex.com).
+## Features
+
+* Hang Protection (exits when connection timeouts)
+* Auto Position Limits
+* Position Multiplier
+* Consider Mark Price
+* Manage Inventory (skew)
+
+This is a fork of a sample market making bot for use with [BitMEX](https://www.bitmex.com).
 
 It is free to use and modify for your own strategies. It provides the following:
 
@@ -26,7 +34,7 @@ It is free to use and modify for your own strategies. It provides the following:
 ## Getting Started
 
 1. Create a [Testnet BitMEX Account](https://testnet.bitmex.com) and [deposit some TBTC](https://testnet.bitmex.com/app/deposit).
-2. Install: `pip install bitmex-market-maker`. It is strongly recommeded to use a virtualenv.
+2. Install: Clone this repository. It is strongly recommeded to use a virtualenv.
 3. Create a marketmaker project: run `marketmaker setup`
     * This will create `settings.py` and `market_maker/` in the working directory.
     * Modify `settings.py` to tune parameters.
