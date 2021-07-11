@@ -1,4 +1,4 @@
-# Jinhaptaesan: A BitMEX Market Maker
+# Jinhaptaesan(진합태산, 塵合泰山): A BitMEX Market Maker
 
 ## Features
 
