@@ -1,4 +1,4 @@
-# BitMEX Market Maker
+# Jinhaptaesan: A BitMEX Market Maker
 
 ## Features
 
