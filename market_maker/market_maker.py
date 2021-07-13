@@ -223,7 +223,7 @@ class OrderManager:
         self.reset()
 
     def reset(self):
-        #self.exchange.cancel_all_orders()
+        self.exchange.cancel_all_orders()
         self.print_status()
         self.sanity_check()
         #self.print_status()
@@ -597,8 +597,9 @@ class OrderManager:
             self.place_orders()  # Creates desired orders and converges to existing orders
 
     def restart(self):
-        logger.info("Restarting the market maker...")
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+#        logger.info("Restarting the market maker...")
+#        os.execv(sys.executable, [sys.executable] + sys.argv)
+        logger.info("Exiting the market maker...")
 
 #
 # Helpers
