@@ -505,7 +505,7 @@ class OrderManager:
             return False
         position = self.exchange.get_delta()
 #        return position <= settings.MIN_POSITION
-        return position - settings.ORDER_START_SIZE <= settings.MIN_POSITION
+        return position - settings.ORDER_START_SIZE < settings.MIN_POSITION
 
     def long_position_limit_exceeded(self):
         """Returns True if the long position limit is exceeded"""
@@ -513,7 +513,7 @@ class OrderManager:
             return False
         position = self.exchange.get_delta()
 #        return position >= settings.MAX_POSITION
-        return position + settings.ORDER_START_SIZE >= settings.MAX_POSITION
+        return position + settings.ORDER_START_SIZE > settings.MAX_POSITION
 
     ###
     # Sanity
