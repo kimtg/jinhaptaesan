@@ -21,7 +21,6 @@ API_SECRET = ""
 # Instrument to market make on BitMEX.
 SYMBOL = "XBTUSD"
 
-
 ########################################################################################################################
 # Order Size & Spread
 ########################################################################################################################
@@ -35,8 +34,14 @@ ORDER_PAIRS = 6
 # [ORDER_START_SIZE + ORDER_STEP_SIZE (Level -1)]
 #ORDER_START_SIZE = 600
 #ORDER_START_SIZE = 200
-ORDER_START_SIZE = 500
+ORDER_START_SIZE = 700
+#ORDER_STEP_SIZE = 100
 ORDER_STEP_SIZE = 0
+
+# If True, order size is the order-to-balance ratio (ORDER_BALANCE_RATIO) is maintained.
+# (example: 0.1 for 10%)
+MANAGE_ORDER_SIZE = True
+ORDER_BALANCE_RATIO = 0.1
 
 # If True, randomize order size
 RANDOM_ORDER_SIZE = False
@@ -49,7 +54,8 @@ MAX_ORDER_SIZE = ORDER_START_SIZE * 4
 #INTERVAL = 0.01
 #INTERVAL = 0.1 / 100
 #INTERVAL = 0.5 / 100 ###
-INTERVAL = 0.1 / 100
+#INTERVAL = 0.5 / 100
+INTERVAL = 0.075 * 2 * 2 / 100
 
 # Minimum spread to maintain, in percent, between asks & bids
 #MIN_SPREAD = 0.01
@@ -60,7 +66,8 @@ INTERVAL = 0.1 / 100
 #MIN_SPREAD = 0.03 # foreign exchange
 #MIN_SPREAD = 4002.5 / 4000 - 1
 #MIN_SPREAD = 0.0015 # taker fee * 2
-MIN_SPREAD = INTERVAL * 2
+#MIN_SPREAD = INTERVAL * 2
+MIN_SPREAD = INTERVAL
 #MIN_SPREAD = 1 / 100
 #MIN_SPREAD = 0.5 / 100
 
@@ -97,7 +104,7 @@ CHECK_POSITION_LIMITS = True
 #MAX_POSITION = 0
 
 # POSITION_MULTIPLIER affects MIN_POSITION and MAX_POSITION (in USD Quantity)
-POSITION_MULTIPLIER = 3
+POSITION_MULTIPLIER = 1
 
 # If True, will only send orders that rest in the book (ExecInst: ParticipateDoNotInitiate).
 # Use to guarantee a maker rebate.
@@ -152,8 +159,8 @@ WATCHED_FILES = [join('market_maker', 'market_maker.py'), join('market_maker', '
 CONTRACTS = ['XBTUSD']
 
 # Consider mark price. If true, do not trade against mark price #####
-#CONSIDER_MARK_PRICE=False
-CONSIDER_MARK_PRICE=True
+CONSIDER_MARK_PRICE=False
+#CONSIDER_MARK_PRICE=True
 
 # If true, try to minimize inventory.
 MANAGE_INVENTORY=True
