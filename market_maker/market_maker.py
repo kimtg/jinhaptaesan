@@ -388,13 +388,13 @@ class OrderManager:
         # print("lotSize:", lotSize) # XBT: 100. https://www.bitmex.com/api/explorer/#!/Instrument/Instrument_get
         minimumqty = max(math.toNearest(int(0.0025 * price + 1), lotSize), lotSize)
 
-        if settings.MANAGE_ORDER_SIZE:
-            quantity = self.contract_balance * settings.ORDER_BALANCE_RATIO            
-
         if settings.RANDOM_ORDER_SIZE is True:
             quantity = random.randint(settings.MIN_ORDER_SIZE, settings.MAX_ORDER_SIZE)
         else:
             quantity = settings.ORDER_START_SIZE + ((abs(index) - 1) * settings.ORDER_STEP_SIZE)
+
+        if settings.MANAGE_ORDER_SIZE:
+            quantity = self.contract_balance * settings.ORDER_BALANCE_RATIO
 
         if index>0: # sell
             quantity = int(min(quantity, self.running_qty - settings.MIN_POSITION))                
