@@ -245,7 +245,8 @@ class OrderManager:
 #        logger.info("Spot: %f" % spot) #####
         markPrice = self.exchange.get_instrument()['markPrice']
         logger.info('markPrice: %s' % markPrice)
-        logger.info("Current USD Balance: %.2f" % (balance * markPrice)) #####
+        self.contract_balance = balance * markPrice
+        logger.info("Current Contract Balance: %.2f" % self.contract_balance) #####
 
         fundingRate = self.exchange.get_instrument()['fundingRate']
         if fundingRate >= 0: # longs pay shorts (normal)
@@ -387,6 +388,9 @@ class OrderManager:
         # print("lotSize:", lotSize) # XBT: 100. https://www.bitmex.com/api/explorer/#!/Instrument/Instrument_get
         minimumqty = max(math.toNearest(int(0.0025 * price + 1), lotSize), lotSize)
 
+        if settings.MANAGE_ORDER_SIZE:
+            quantity = self.contract_balance * settings.ORDER_BALANCE_RATIO            
+
         if settings.RANDOM_ORDER_SIZE is True:
             quantity = random.randint(settings.MIN_ORDER_SIZE, settings.MAX_ORDER_SIZE)
         else:
@@ -397,8 +401,11 @@ class OrderManager:
         else: # buy
             quantity = int(min(quantity, settings.MAX_POSITION - self.running_qty))
 
+        quantity = math.toNearest(quantity, lotSize)
         if quantity < minimumqty: # anti-spam
             quantity = minimumqty
+        
+        settings.ORDER_START_SIZE = quantity
 
         return {'price': price, 'orderQty': quantity, 'side': "Buy" if index < 0 else "Sell"}
 
