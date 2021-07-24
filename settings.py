@@ -67,7 +67,7 @@ INTERVAL = 0.075 * 2 * 2 / 100
 #MIN_SPREAD = 4002.5 / 4000 - 1
 #MIN_SPREAD = 0.0015 # taker fee * 2
 #MIN_SPREAD = INTERVAL * 2
-MIN_SPREAD = INTERVAL
+MIN_SPREAD = INTERVAL * 2
 #MIN_SPREAD = 1 / 100
 #MIN_SPREAD = 0.5 / 100
 
@@ -87,8 +87,7 @@ MAINTAIN_SPREADS = True
 #
 # 0.01 == 1%
 #RELIST_INTERVAL = 0.01
-#RELIST_INTERVAL = MIN_SPREAD
-RELIST_INTERVAL = INTERVAL
+RELIST_INTERVAL = MIN_SPREAD
 
 ########################################################################################################################
 # Trading Behavior
