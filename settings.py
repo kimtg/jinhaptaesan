@@ -41,7 +41,7 @@ ORDER_STEP_SIZE = 0
 # If True, order size is the order-to-balance ratio (ORDER_BALANCE_RATIO) is maintained.
 # (example: 0.1 for 10%)
 MANAGE_ORDER_SIZE = True
-ORDER_BALANCE_RATIO = 0.1
+ORDER_BALANCE_RATIO = 0.05
 
 # If True, randomize order size
 RANDOM_ORDER_SIZE = False
@@ -55,7 +55,7 @@ MAX_ORDER_SIZE = ORDER_START_SIZE * 4
 #INTERVAL = 0.1 / 100
 #INTERVAL = 0.5 / 100 ###
 #INTERVAL = 0.5 / 100
-INTERVAL = 0.075 * 2 * 2 / 100
+INTERVAL = 0.5 / 100
 
 # Minimum spread to maintain, in percent, between asks & bids
 #MIN_SPREAD = 0.01
@@ -87,7 +87,8 @@ MAINTAIN_SPREADS = True
 #
 # 0.01 == 1%
 #RELIST_INTERVAL = 0.01
-RELIST_INTERVAL = MIN_SPREAD
+#RELIST_INTERVAL = MIN_SPREAD
+RELIST_INTERVAL = INTERVAL
 
 ########################################################################################################################
 # Trading Behavior
@@ -103,7 +104,7 @@ CHECK_POSITION_LIMITS = True
 #MAX_POSITION = 0
 
 # POSITION_MULTIPLIER affects MIN_POSITION and MAX_POSITION (in USD Quantity)
-POSITION_MULTIPLIER = 1
+POSITION_MULTIPLIER = 0.5
 
 # If True, will only send orders that rest in the book (ExecInst: ParticipateDoNotInitiate).
 # Use to guarantee a maker rebate.
@@ -116,7 +117,7 @@ POST_ONLY = True
 ########################################################################################################################
 
 # If true, don't set up any orders, just say what we would do
-# DRY_RUN = True
+#DRY_RUN = True
 DRY_RUN = False
 
 # How often to re-check and replace orders.
@@ -132,7 +133,8 @@ API_ERROR_INTERVAL = 10
 TIMEOUT = 30
 
 # If we're doing a dry run, use these numbers for BTC balances
-DRY_BTC = 50
+#DRY_BTC = 50
+DRY_BTC = 100000000 # in XBt. 1 BTC
 
 # Available levels: logging.(DEBUG|INFO|WARN|ERROR)
 LOG_LEVEL = logging.INFO
