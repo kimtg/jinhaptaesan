@@ -265,7 +265,7 @@ class OrderManager:
 #            settings.MIN_POSITION = -balance * markPrice * 2 # -2x leverage
 #            settings.MAX_POSITION = balance * markPrice      # 1x leverage
 
-            settings.MIN_POSITION = -balance * markPrice * (settings.POSITION_MULTIPLIER + 1)
+            settings.MIN_POSITION = -balance * markPrice * (settings.POSITION_MULTIPLIER)
             settings.MAX_POSITION = balance * markPrice * (settings.POSITION_MULTIPLIER - 1)
             logger.info("Position limits: %d/%d" % (settings.MIN_POSITION, settings.MAX_POSITION))
         if position['currentQty'] != 0:
