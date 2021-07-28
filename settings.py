@@ -165,3 +165,6 @@ CONSIDER_MARK_PRICE=False
 
 # If true, try to minimize inventory.
 MANAGE_INVENTORY=True
+
+# Consider funding rate. If true, prefer long/short according to funding rate (positive: short) #####
+CONSIDER_FUNDING=True

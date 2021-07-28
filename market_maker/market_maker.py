@@ -249,9 +249,13 @@ class OrderManager:
         logger.info("Current Contract Balance: %.2f" % self.contract_balance) #####
 
         fundingRate = self.exchange.get_instrument()['fundingRate']
-        if fundingRate >= 0: # longs pay shorts (normal)
-            self.ideal_qty_min = -balance * markPrice
-            self.ideal_qty_max = 0
+        if settings.CONSIDER_FUNDING:
+            if fundingRate >= 0: # longs pay shorts (normal)
+                self.ideal_qty_min = -balance * markPrice
+                self.ideal_qty_max = 0
+            else:
+                self.ideal_qty_min = 0
+                self.ideal_qty_max = 0
         else:
             self.ideal_qty_min = -balance * markPrice
             self.ideal_qty_max = 0
