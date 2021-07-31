@@ -87,8 +87,7 @@ MAINTAIN_SPREADS = True
 #
 # 0.01 == 1%
 #RELIST_INTERVAL = 0.01
-#RELIST_INTERVAL = MIN_SPREAD
-RELIST_INTERVAL = INTERVAL
+RELIST_INTERVAL = MIN_SPREAD
 
 ########################################################################################################################
 # Trading Behavior
