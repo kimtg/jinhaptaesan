@@ -252,13 +252,13 @@ class OrderManager:
         if settings.CONSIDER_FUNDING:
             if fundingRate >= 0: # longs pay shorts (normal)
                 self.ideal_qty_min = -balance * markPrice
-                self.ideal_qty_max = 0
+                self.ideal_qty_max = -balance * markPrice
             else:
                 self.ideal_qty_min = 0
                 self.ideal_qty_max = 0
         else:
             self.ideal_qty_min = -balance * markPrice
-            self.ideal_qty_max = 0
+            self.ideal_qty_max = -balance * markPrice
         
         logger.info("Current XBT Balance: %.6f" % balance)
         logger.info("Current Contract Position: %d" % self.running_qty)
