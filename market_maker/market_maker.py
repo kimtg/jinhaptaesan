@@ -301,9 +301,9 @@ class OrderManager:
         min_spread_buy = min_spread_sell = settings.MIN_SPREAD / 2
         if settings.MANAGE_INVENTORY:
             if self.running_qty < self.ideal_qty_min: # inventory management
-                min_spread_buy /= 2
+                min_spread_sell *= 2
             if self.running_qty > self.ideal_qty_max:
-                min_spread_sell /= 2
+                min_spread_buy *= 2
         
         if self.start_position_buy * (1.00 + min_spread_buy + min_spread_sell) > self.start_position_sell:
             self.start_position_buy *= (1.00 - min_spread_buy)
@@ -328,12 +328,12 @@ class OrderManager:
         interval = settings.INTERVAL
         # inventory management
         if settings.MANAGE_INVENTORY:
-            if index<0:
+            if index > 0: # sell
                 if self.running_qty < self.ideal_qty_min: # sell position is too much
-                    interval /= 2
+                    interval *= 2 # slow down
             else:
                 if self.running_qty > self.ideal_qty_max:
-                    interval /= 2
+                    interval *= 2
                     
         # Maintain existing spreads for max profit
         if settings.MAINTAIN_SPREADS:
@@ -438,12 +438,22 @@ class OrderManager:
                 else:
                     desired_order = sell_orders[sells_matched]
                     sells_matched += 1
+                
+                # inventory management
+                relist_interval = settings.RELIST_INTERVAL
+                if settings.MANAGE_INVENTORY:
+                    if order['side'] == 'Sell':
+                        if self.running_qty < self.ideal_qty_min: # sell position is too much
+                            relist_interval *= 2 # slow down
+                    else:
+                        if self.running_qty > self.ideal_qty_max:
+                            relist_interval *= 2
 
                 # Found an existing order. Do we need to amend it?
                 if desired_order['orderQty'] != order['leavesQty'] or (
                     # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
                     desired_order['price'] != order['price'] and
-                    abs((desired_order['price'] / order['price']) - 1) > settings.RELIST_INTERVAL):                
+                    abs((desired_order['price'] / order['price']) - 1) > relist_interval):                
                         to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
                                      'price': desired_order['price'], 'side': order['side']})
                 else:
