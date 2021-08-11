@@ -301,9 +301,9 @@ class OrderManager:
         min_spread_buy = min_spread_sell = settings.MIN_SPREAD / 2
         if settings.MANAGE_INVENTORY:
             if self.running_qty < self.ideal_qty_min: # inventory management
-                min_spread_sell *= 2
+                min_spread_sell *= settings.MANAGE_INVENTORY_SKEW
             if self.running_qty > self.ideal_qty_max:
-                min_spread_buy *= 2
+                min_spread_buy *= settings.MANAGE_INVENTORY_SKEW
         
         if self.start_position_buy * (1.00 + min_spread_buy + min_spread_sell) > self.start_position_sell:
             self.start_position_buy *= (1.00 - min_spread_buy)
@@ -330,10 +330,10 @@ class OrderManager:
         if settings.MANAGE_INVENTORY:
             if index > 0: # sell
                 if self.running_qty < self.ideal_qty_min: # sell position is too much
-                    interval *= 2 # slow down
+                    interval *= settings.MANAGE_INVENTORY_SKEW # slow down
             else:
                 if self.running_qty > self.ideal_qty_max:
-                    interval *= 2
+                    interval *= settings.MANAGE_INVENTORY_SKEW
                     
         # Maintain existing spreads for max profit
         if settings.MAINTAIN_SPREADS:
@@ -444,10 +444,10 @@ class OrderManager:
                 if settings.MANAGE_INVENTORY:
                     if order['side'] == 'Sell':
                         if self.running_qty < self.ideal_qty_min: # sell position is too much
-                            relist_interval *= 2 # slow down
+                            relist_interval *= settings.MANAGE_INVENTORY_SKEW # slow down
                     else:
                         if self.running_qty > self.ideal_qty_max:
-                            relist_interval *= 2
+                            relist_interval *= settings.MANAGE_INVENTORY_SKEW
 
                 # Found an existing order. Do we need to amend it?
                 if desired_order['orderQty'] != order['leavesQty'] or (
