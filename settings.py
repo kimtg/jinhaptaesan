@@ -165,5 +165,10 @@ CONSIDER_MARK_PRICE=False
 # If true, try to minimize inventory.
 MANAGE_INVENTORY=True
 
+# If MANAGE_INVENTORY==True and the current balance is excessive,
+# the spread and interval in that direction is widened by a factor of MANAGE_INVENTORY_SKEW.
+#MANAGE_INVENTORY_SKEW=2
+MANAGE_INVENTORY_SKEW=4
+
 # Consider funding rate. If true, prefer long/short according to funding rate (positive: short) #####
 CONSIDER_FUNDING=True
