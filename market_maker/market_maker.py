@@ -251,14 +251,11 @@ class OrderManager:
         fundingRate = self.exchange.get_instrument()['fundingRate']
         if settings.CONSIDER_FUNDING:
             if fundingRate >= 0: # longs pay shorts (normal)
-                self.ideal_qty_min = -balance * markPrice
-                self.ideal_qty_max = -balance * markPrice
+                self.ideal_qty = -balance * markPrice
             else:
-                self.ideal_qty_min = 0
-                self.ideal_qty_max = 0
+                self.ideal_qty = 0
         else:
-            self.ideal_qty_min = -balance * markPrice
-            self.ideal_qty_max = -balance * markPrice
+            self.ideal_qty = -balance * markPrice
         
         logger.info("Current XBT Balance: %.6f" % balance)
         logger.info("Current Contract Position: %d" % self.running_qty)
@@ -300,10 +297,12 @@ class OrderManager:
         # Back off if our spread is too small.
         min_spread_buy = min_spread_sell = settings.MIN_SPREAD / 2
         if settings.MANAGE_INVENTORY:
-            if self.running_qty < self.ideal_qty_min: # inventory management
-                min_spread_sell *= settings.MANAGE_INVENTORY_SKEW
-            if self.running_qty > self.ideal_qty_max:
-                min_spread_buy *= settings.MANAGE_INVENTORY_SKEW
+            if self.running_qty < self.ideal_qty: # inventory management
+                min_spread_sell = settings.MIN_SPREAD * settings.MANAGE_INVENTORY_SKEW / (settings.MANAGE_INVENTORY_SKEW + 1)
+                min_spread_buy = settings.MIN_SPREAD * 1 / (settings.MANAGE_INVENTORY_SKEW + 1)
+            elif self.running_qty > self.ideal_qty:
+                min_spread_buy = settings.MIN_SPREAD * settings.MANAGE_INVENTORY_SKEW / (settings.MANAGE_INVENTORY_SKEW + 1)
+                min_spread_sell = settings.MIN_SPREAD * 1 / (settings.MANAGE_INVENTORY_SKEW + 1)
         
         if self.start_position_buy * (1.00 + min_spread_buy + min_spread_sell) > self.start_position_sell:
             self.start_position_buy *= (1.00 - min_spread_buy)
@@ -326,14 +325,6 @@ class OrderManager:
        
         markPrice = self.exchange.get_instrument()['markPrice'] #####
         interval = settings.INTERVAL
-        # inventory management
-        if settings.MANAGE_INVENTORY:
-            if index > 0: # sell
-                if self.running_qty < self.ideal_qty_min: # sell position is too much
-                    interval *= settings.MANAGE_INVENTORY_SKEW # slow down
-            else:
-                if self.running_qty > self.ideal_qty_max:
-                    interval *= settings.MANAGE_INVENTORY_SKEW
                     
         # Maintain existing spreads for max profit
         if settings.MAINTAIN_SPREADS:
@@ -443,11 +434,15 @@ class OrderManager:
                 relist_interval = settings.RELIST_INTERVAL
                 if settings.MANAGE_INVENTORY:
                     if order['side'] == 'Sell':
-                        if self.running_qty < self.ideal_qty_min: # sell position is too much
-                            relist_interval *= settings.MANAGE_INVENTORY_SKEW # slow down
+                        if self.running_qty < self.ideal_qty: # sell position is too much
+                            relist_interval = settings.MIN_SPREAD * settings.MANAGE_INVENTORY_SKEW / (settings.MANAGE_INVENTORY_SKEW + 1)
+                        elif self.running_qty > self.ideal_qty:
+                            relist_interval = settings.MIN_SPREAD * 1 / (settings.MANAGE_INVENTORY_SKEW + 1)
                     else:
-                        if self.running_qty > self.ideal_qty_max:
-                            relist_interval *= settings.MANAGE_INVENTORY_SKEW
+                        if self.running_qty > self.ideal_qty:
+                            relist_interval = settings.MIN_SPREAD * settings.MANAGE_INVENTORY_SKEW / (settings.MANAGE_INVENTORY_SKEW + 1)
+                        elif self.running_qty < self.ideal_qty:
+                            relist_interval = settings.MIN_SPREAD * 1 / (settings.MANAGE_INVENTORY_SKEW + 1)
 
                 # Found an existing order. Do we need to amend it?
                 if desired_order['orderQty'] != order['leavesQty'] or (
