@@ -166,9 +166,10 @@ CONSIDER_MARK_PRICE=False
 MANAGE_INVENTORY=True
 
 # If MANAGE_INVENTORY==True and the current balance is excessive,
-# the spread and interval in that direction is widened by a factor of MANAGE_INVENTORY_SKEW.
+# the buy and sell spread becomes MANAGE_INVENTORY_SKEW:1
+# 1 means even.
 #MANAGE_INVENTORY_SKEW=2
-MANAGE_INVENTORY_SKEW=4
+MANAGE_INVENTORY_SKEW=2
 
 # Consider funding rate. If true, prefer long/short according to funding rate (positive: short) #####
 CONSIDER_FUNDING=True
