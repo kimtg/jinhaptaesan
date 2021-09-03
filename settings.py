@@ -87,7 +87,7 @@ MAINTAIN_SPREADS = True
 #
 # 0.01 == 1%
 #RELIST_INTERVAL = 0.01
-RELIST_INTERVAL = MIN_SPREAD
+RELIST_INTERVAL = MIN_SPREAD / 2
 
 ########################################################################################################################
 # Trading Behavior
@@ -103,7 +103,7 @@ CHECK_POSITION_LIMITS = True
 #MAX_POSITION = 0
 
 # POSITION_MULTIPLIER affects MIN_POSITION and MAX_POSITION (in USD Quantity)
-POSITION_MULTIPLIER = 1
+POSITION_MULTIPLIER = 15
 
 # If True, will only send orders that rest in the book (ExecInst: ParticipateDoNotInitiate).
 # Use to guarantee a maker rebate.
