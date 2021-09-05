@@ -297,10 +297,10 @@ class OrderManager:
         # Back off if our spread is too small.
         min_spread_buy = min_spread_sell = settings.MIN_SPREAD / 2
         if settings.MANAGE_INVENTORY:
-            if self.running_qty < self.ideal_qty: # inventory management
+            if self.running_qty < self.ideal_qty and abs(self.running_qty - self.ideal_qty) > self.ideal_qty: # inventory management
                 min_spread_sell = settings.MIN_SPREAD * settings.MANAGE_INVENTORY_SKEW / (settings.MANAGE_INVENTORY_SKEW + 1)
                 min_spread_buy = settings.MIN_SPREAD * 1 / (settings.MANAGE_INVENTORY_SKEW + 1)
-            elif self.running_qty > self.ideal_qty:
+            elif self.running_qty > self.ideal_qty and abs(self.running_qty - self.ideal_qty) > self.ideal_qty:
                 min_spread_buy = settings.MIN_SPREAD * settings.MANAGE_INVENTORY_SKEW / (settings.MANAGE_INVENTORY_SKEW + 1)
                 min_spread_sell = settings.MIN_SPREAD * 1 / (settings.MANAGE_INVENTORY_SKEW + 1)
         
@@ -430,25 +430,11 @@ class OrderManager:
                     desired_order = sell_orders[sells_matched]
                     sells_matched += 1
                 
-                # inventory management
-                relist_interval = settings.RELIST_INTERVAL
-                if settings.MANAGE_INVENTORY:
-                    if order['side'] == 'Sell':
-                        if self.running_qty < self.ideal_qty: # sell position is too much
-                            relist_interval = settings.MIN_SPREAD * settings.MANAGE_INVENTORY_SKEW / (settings.MANAGE_INVENTORY_SKEW + 1)
-                        elif self.running_qty > self.ideal_qty:
-                            relist_interval = settings.MIN_SPREAD * 1 / (settings.MANAGE_INVENTORY_SKEW + 1)
-                    else:
-                        if self.running_qty > self.ideal_qty:
-                            relist_interval = settings.MIN_SPREAD * settings.MANAGE_INVENTORY_SKEW / (settings.MANAGE_INVENTORY_SKEW + 1)
-                        elif self.running_qty < self.ideal_qty:
-                            relist_interval = settings.MIN_SPREAD * 1 / (settings.MANAGE_INVENTORY_SKEW + 1)
-
                 # Found an existing order. Do we need to amend it?
                 if desired_order['orderQty'] != order['leavesQty'] or (
                     # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
                     desired_order['price'] != order['price'] and
-                    abs((desired_order['price'] / order['price']) - 1) > relist_interval):                
+                    abs((desired_order['price'] / order['price']) - 1) > settings.RELIST_INTERVAL):                
                         to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
                                      'price': desired_order['price'], 'side': order['side']})
                 else:
