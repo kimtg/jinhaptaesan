@@ -249,13 +249,10 @@ class OrderManager:
         logger.info("Current Contract Balance: %.2f" % self.contract_balance) #####
 
         fundingRate = self.exchange.get_instrument()['fundingRate']
-        if settings.CONSIDER_FUNDING:
-            if fundingRate >= 0: # longs pay shorts (normal)
-                self.ideal_qty = -balance * markPrice
-            else:
-                self.ideal_qty = 0
-        else:
-            self.ideal_qty = -balance * markPrice
+        self.neutral_qty = -balance * markPrice # delta neutral in USD
+        self.ideal_qty = self.neutral_qty
+        if settings.CONSIDER_FUNDING and fundingRate >= 0:
+            self.ideal_qty = 0
         
         logger.info("Current XBT Balance: %.6f" % balance)
         logger.info("Current Contract Position: %d" % self.running_qty)
@@ -296,13 +293,15 @@ class OrderManager:
 
         # Back off if our spread is too small.
         min_spread_buy = min_spread_sell = settings.MIN_SPREAD / 2
-        if settings.MANAGE_INVENTORY:
-            if self.running_qty < self.ideal_qty and abs(self.running_qty - self.ideal_qty) > self.ideal_qty: # inventory management
-                min_spread_sell = settings.MIN_SPREAD * settings.MANAGE_INVENTORY_SKEW / (settings.MANAGE_INVENTORY_SKEW + 1)
-                min_spread_buy = settings.MIN_SPREAD * 1 / (settings.MANAGE_INVENTORY_SKEW + 1)
-            elif self.running_qty > self.ideal_qty and abs(self.running_qty - self.ideal_qty) > self.ideal_qty:
-                min_spread_buy = settings.MIN_SPREAD * settings.MANAGE_INVENTORY_SKEW / (settings.MANAGE_INVENTORY_SKEW + 1)
-                min_spread_sell = settings.MIN_SPREAD * 1 / (settings.MANAGE_INVENTORY_SKEW + 1)
+        if settings.MANAGE_INVENTORY: # inventory management
+            inventory_ratio = abs(self.running_qty - self.ideal_qty) / abs(self.neutral_qty)
+            skew = 1 + inventory_ratio * (settings.MANAGE_INVENTORY_SKEW - 1) # gradual skew according to inventory
+            if self.running_qty < self.ideal_qty:
+                min_spread_sell = settings.MIN_SPREAD * skew / (skew + 1)
+                min_spread_buy = settings.MIN_SPREAD * 1 / (skew + 1)
+            elif self.running_qty > self.ideal_qty:
+                min_spread_buy = settings.MIN_SPREAD * skew / (skew + 1)
+                min_spread_sell = settings.MIN_SPREAD * 1 / (skew + 1)
         
         if self.start_position_buy * (1.00 + min_spread_buy + min_spread_sell) > self.start_position_sell:
             self.start_position_buy *= (1.00 - min_spread_buy)
