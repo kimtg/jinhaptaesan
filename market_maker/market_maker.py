@@ -292,6 +292,16 @@ class OrderManager:
                 self.start_position_sell = ticker["sell"]
 
         # Back off if our spread is too small.
+        self.min_spread_buy = self.min_spread_sell = settings.MIN_SPREAD / 2
+        if settings.MANAGE_INVENTORY: # inventory management
+            inventory_ratio = abs(self.running_qty - self.ideal_qty) / abs(self.neutral_qty)
+            skew = 1 + inventory_ratio * (settings.MANAGE_INVENTORY_SKEW - 1) # gradual skew according to inventory
+            if self.running_qty < self.ideal_qty:
+                self.min_spread_sell = settings.MIN_SPREAD * skew / (skew + 1)
+                self.min_spread_buy = settings.MIN_SPREAD * 1 / (skew + 1)
+            elif self.running_qty > self.ideal_qty:
+                self.min_spread_buy = settings.MIN_SPREAD * skew / (skew + 1)
+                self.min_spread_sell = settings.MIN_SPREAD * 1 / (skew + 1)        
         if self.start_position_buy * (1.00 + self.min_spread_buy + self.min_spread_sell) > self.start_position_sell:
             self.start_position_buy *= (1.00 - self.min_spread_buy)
             self.start_position_sell *= (1.00 + self.min_spread_sell)
@@ -313,16 +323,6 @@ class OrderManager:
        
         markPrice = self.exchange.get_instrument()['markPrice'] #####
         # interval = settings.INTERVAL        
-        self.min_spread_buy = self.min_spread_sell = settings.MIN_SPREAD / 2
-        if settings.MANAGE_INVENTORY: # inventory management
-            inventory_ratio = abs(self.running_qty - self.ideal_qty) / abs(self.neutral_qty)
-            skew = 1 + inventory_ratio * (settings.MANAGE_INVENTORY_SKEW - 1) # gradual skew according to inventory
-            if self.running_qty < self.ideal_qty:
-                self.min_spread_sell = settings.MIN_SPREAD * skew / (skew + 1)
-                self.min_spread_buy = settings.MIN_SPREAD * 1 / (skew + 1)
-            elif self.running_qty > self.ideal_qty:
-                self.min_spread_buy = settings.MIN_SPREAD * skew / (skew + 1)
-                self.min_spread_sell = settings.MIN_SPREAD * 1 / (skew + 1)
         if index < 0:
             interval = self.min_spread_buy
         else:
