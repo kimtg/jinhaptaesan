@@ -224,57 +224,51 @@ class OrderManager:
 
     def reset(self):
         self.exchange.cancel_all_orders()
-        self.print_status()
         self.sanity_check()
-        #self.print_status()
+        self.print_status()
 
         # Create orders and converge.
         self.place_orders()
 
     def print_status(self):
         """Print the current MM status."""        
-
-        margin = self.exchange.get_margin()
-        position = self.exchange.get_position()
-        self.running_qty = self.exchange.get_delta()
+        
+        position = self.exchange.get_position()        
         tickLog = self.exchange.get_instrument()['tickLog']
-        self.start_XBt = margin["marginBalance"]
         
-        balance = XBt_to_XBT(self.start_XBt) #####
-#        spot = self.exchange.get_instrument()['indicativeSettlePrice'] #####
-#        logger.info("Spot: %f" % spot) #####
-        markPrice = self.exchange.get_instrument()['markPrice']
-        logger.info('markPrice: %s' % markPrice)
-        self.contract_balance = balance * markPrice
+        logger.info('markPrice: %s' % self.markPrice)        
         logger.info("Current Contract Balance: %.2f" % self.contract_balance) #####
-
-        fundingRate = self.exchange.get_instrument()['fundingRate']
-        self.neutral_qty = -balance * markPrice # delta neutral to USD
-        self.ideal_qty = self.neutral_qty
-        if settings.CONSIDER_FUNDING and fundingRate < 0:
-            self.ideal_qty = 0
-        
-        logger.info("Current XBT Balance: %.6f" % balance)
+        logger.info("Current XBT Balance: %.6f" % self.balance)
         logger.info("Current Contract Position: %d" % self.running_qty)
         if settings.CHECK_POSITION_LIMITS:
-#            settings.MIN_POSITION = -balance * markPrice # no effective short position
-#            settings.MAX_POSITION = 0 # no long position
-
-#            settings.MIN_POSITION = -balance * markPrice * 2 # -2x leverage
-#            settings.MAX_POSITION = balance * markPrice      # 1x leverage
-
-            settings.MIN_POSITION = -balance * markPrice * (settings.POSITION_MULTIPLIER)
-            settings.MAX_POSITION = balance * markPrice * (settings.POSITION_MULTIPLIER - 1)
             logger.info("Position limits: %d/%d" % (settings.MIN_POSITION, settings.MAX_POSITION))
+        
         if position['currentQty'] != 0:
             logger.info("Avg Cost Price: %.*f" % (tickLog, float(position['avgCostPrice'])))
             logger.info("Avg Entry Price: %.*f" % (tickLog, float(position['avgEntryPrice'])))
+        
         logger.info("Contracts Traded This Run: %d" % (self.running_qty - self.starting_qty))
         logger.info("Total Contract Delta: %.4f XBT" % self.exchange.calc_delta()['spot'])
 
     def get_ticker(self):
         ticker = self.exchange.get_ticker()
         tickLog = self.exchange.get_instrument()['tickLog']
+
+        # common values
+        margin = self.exchange.get_margin()
+        self.balance = XBt_to_XBT(margin["marginBalance"]) # in XBT
+        self.running_qty = self.exchange.get_delta()
+        self.markPrice = self.exchange.get_instrument()['markPrice']
+        self.contract_balance = self.balance * self.markPrice
+        self.neutral_qty = -self.balance * self.markPrice # delta neutral to USD
+        self.ideal_qty = self.neutral_qty
+        fundingRate = self.exchange.get_instrument()['fundingRate']
+        if settings.CONSIDER_FUNDING and fundingRate < 0:
+            self.ideal_qty = 0
+        
+        if settings.CHECK_POSITION_LIMITS:
+            settings.MIN_POSITION = -self.balance * self.markPrice * (settings.POSITION_MULTIPLIER)
+            settings.MAX_POSITION = self.balance * self.markPrice * (settings.POSITION_MULTIPLIER - 1)
 
         # Set up our buy & sell positions as the smallest possible unit above and below the current spread
         # and we'll work out from there. That way we always have the best price but we don't kill wide
@@ -600,9 +594,8 @@ class OrderManager:
                 logger.error("Realtime data connection unexpectedly closed, restarting.")
                 self.restart()
 
-            self.print_status()  # Print skew, delta, etc
             self.sanity_check()  # Ensures health of mm - several cut-out points here
-            #self.print_status()  # Print skew, delta, etc
+            self.print_status()  # Print skew, delta, etc
             self.place_orders()  # Creates desired orders and converges to existing orders
 
     def restart(self):
