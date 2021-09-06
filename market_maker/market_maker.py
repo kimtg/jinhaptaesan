@@ -292,20 +292,9 @@ class OrderManager:
                 self.start_position_sell = ticker["sell"]
 
         # Back off if our spread is too small.
-        min_spread_buy = min_spread_sell = settings.MIN_SPREAD / 2
-        if settings.MANAGE_INVENTORY: # inventory management
-            inventory_ratio = abs(self.running_qty - self.ideal_qty) / abs(self.neutral_qty)
-            skew = 1 + inventory_ratio * (settings.MANAGE_INVENTORY_SKEW - 1) # gradual skew according to inventory
-            if self.running_qty < self.ideal_qty:
-                min_spread_sell = settings.MIN_SPREAD * skew / (skew + 1)
-                min_spread_buy = settings.MIN_SPREAD * 1 / (skew + 1)
-            elif self.running_qty > self.ideal_qty:
-                min_spread_buy = settings.MIN_SPREAD * skew / (skew + 1)
-                min_spread_sell = settings.MIN_SPREAD * 1 / (skew + 1)
-        
-        if self.start_position_buy * (1.00 + min_spread_buy + min_spread_sell) > self.start_position_sell:
-            self.start_position_buy *= (1.00 - min_spread_buy)
-            self.start_position_sell *= (1.00 + min_spread_sell)
+        if self.start_position_buy * (1.00 + self.min_spread_buy + self.min_spread_sell) > self.start_position_sell:
+            self.start_position_buy *= (1.00 - self.min_spread_buy)
+            self.start_position_sell *= (1.00 + self.min_spread_sell)
 
         # Midpoint, used for simpler order placement.
         self.start_position_mid = ticker["mid"]
@@ -323,7 +312,21 @@ class OrderManager:
            Negative is a buy, positive is a sell."""
        
         markPrice = self.exchange.get_instrument()['markPrice'] #####
-        interval = settings.INTERVAL
+        # interval = settings.INTERVAL        
+        self.min_spread_buy = self.min_spread_sell = settings.MIN_SPREAD / 2
+        if settings.MANAGE_INVENTORY: # inventory management
+            inventory_ratio = abs(self.running_qty - self.ideal_qty) / abs(self.neutral_qty)
+            skew = 1 + inventory_ratio * (settings.MANAGE_INVENTORY_SKEW - 1) # gradual skew according to inventory
+            if self.running_qty < self.ideal_qty:
+                self.min_spread_sell = settings.MIN_SPREAD * skew / (skew + 1)
+                self.min_spread_buy = settings.MIN_SPREAD * 1 / (skew + 1)
+            elif self.running_qty > self.ideal_qty:
+                self.min_spread_buy = settings.MIN_SPREAD * skew / (skew + 1)
+                self.min_spread_sell = settings.MIN_SPREAD * 1 / (skew + 1)
+        if index < 0:
+            interval = self.min_spread_buy
+        else:
+            interval = self.min_spread_sell
                     
         # Maintain existing spreads for max profit
         if settings.MAINTAIN_SPREADS:
@@ -425,15 +428,19 @@ class OrderManager:
                 if order['side'] == 'Buy':
                     desired_order = buy_orders[buys_matched]
                     buys_matched += 1
+                    relist_interval = self.min_spread_buy
                 else:
                     desired_order = sell_orders[sells_matched]
                     sells_matched += 1
+                    relist_interval = self.min_spread_sell
                 
+                # relist_interval = settings.RELIST_INTERVAL
+
                 # Found an existing order. Do we need to amend it?
                 if desired_order['orderQty'] != order['leavesQty'] or (
                     # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
                     desired_order['price'] != order['price'] and
-                    abs((desired_order['price'] / order['price']) - 1) > settings.RELIST_INTERVAL):                
+                    abs((desired_order['price'] / order['price']) - 1) > relist_interval):                
                         to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
                                      'price': desired_order['price'], 'side': order['side']})
                 else:
