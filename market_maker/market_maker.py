@@ -423,13 +423,12 @@ class OrderManager:
                 if order['side'] == 'Buy':
                     desired_order = buy_orders[buys_matched]
                     buys_matched += 1
-                    relist_interval = self.min_spread_buy
                 else:
                     desired_order = sell_orders[sells_matched]
                     sells_matched += 1
-                    relist_interval = self.min_spread_sell
                 
                 # relist_interval = settings.RELIST_INTERVAL
+                relist_interval = settings.MIN_SPREAD
 
                 # Found an existing order. Do we need to amend it?
                 if desired_order['orderQty'] != order['leavesQty'] or (
