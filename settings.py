@@ -27,7 +27,7 @@ SYMBOL = "XBTUSD"
 
 # How many pairs of buy/sell orders to keep open
 #ORDER_PAIRS = 6
-ORDER_PAIRS = 6
+ORDER_PAIRS = 1
 
 # ORDER_START_SIZE will be the number of contracts submitted on level 1
 # Number of contracts from level 1 to ORDER_PAIRS - 1 will follow the function
@@ -170,10 +170,10 @@ CONSIDER_MARK_PRICE=False
 MANAGE_INVENTORY=True
 
 # If MANAGE_INVENTORY==True and the current balance is excessive,
-# the buy and sell spread becomes MANAGE_INVENTORY_SKEW:1
+# the buy spread:sell spread becomes MANAGE_INVENTORY_SKEW:1
 # 1 means even.
 #MANAGE_INVENTORY_SKEW=2
 MANAGE_INVENTORY_SKEW=2
 
 # Consider funding rate. If true, prefer long/short according to funding rate (positive: short) #####
-CONSIDER_FUNDING=True
+CONSIDER_FUNDING=False
