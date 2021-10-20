@@ -185,15 +185,25 @@ class ExchangeInterface:
         if instrument['midPrice'] is None:
             raise errors.MarketEmptyError("Orderbook is empty, cannot quote")
 
-    def amend_bulk_orders(self, orders):
-        if self.dry_run:
-            return orders
-        return self.bitmex.amend_bulk_orders(orders)
+    # def amend_bulk_orders(self, orders):
+    #     if self.dry_run:
+    #         return orders
+    #     return self.bitmex.amend_bulk_orders(orders)
 
-    def create_bulk_orders(self, orders):
+    def amend_order(self, order):
         if self.dry_run:
-            return orders
-        return self.bitmex.create_bulk_orders(orders)
+            return order
+        return self.bitmex.amend_order(order)
+
+    # def create_bulk_orders(self, orders):
+    #     if self.dry_run:
+    #         return orders
+    #     return self.bitmex.create_bulk_orders(orders)
+
+    def create_order(self, order):
+        if self.dry_run:
+            return order
+        return self.bitmex.create_order(order)
 
     def cancel_bulk_orders(self, orders):
         if self.dry_run:
@@ -473,8 +483,10 @@ class OrderManager:
             # The API will send us `invalid ordStatus`, which means that the order's status (Filled/Canceled)
             # made it not amendable.
             # If that happens, we need to catch it and re-tick.
-            try:
-                self.exchange.amend_bulk_orders(to_amend)
+            try:                
+                #self.exchange.amend_bulk_orders(to_amend)
+                for order in to_amend:
+                    self.exchange.amend_order(order)
             except requests.exceptions.HTTPError as e:
                 errorObj = e.response.json()
                 if errorObj['error']['message'] == 'Invalid ordStatus':
@@ -489,7 +501,8 @@ class OrderManager:
             logger.info("Creating %d orders:" % (len(to_create)))
             for order in reversed(to_create):
                 logger.info("%4s %d @ %.*f" % (order['side'], order['orderQty'], tickLog, order['price']))
-            self.exchange.create_bulk_orders(to_create)
+                self.exchange.create_order(order)
+            #self.exchange.create_bulk_orders(to_create)
 
         # Could happen if we exceed a delta limit
         if len(to_cancel) > 0:
