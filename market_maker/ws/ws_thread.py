@@ -57,6 +57,7 @@ class BitMEXWebsocket():
         # Get WS URL and connect.
         urlParts = list(urlparse(endpoint))
         urlParts[0] = urlParts[0].replace('http', 'ws')
+        urlParts[1] = urlParts[1].replace('www', 'ws')
         urlParts[2] = "/realtime?subscribe=" + ",".join(subscriptions)
         wsURL = urlunparse(urlParts)
         logger.info("Connecting to %s" % wsURL)
