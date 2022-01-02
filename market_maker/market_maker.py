@@ -397,7 +397,8 @@ class OrderManager:
             quantity = settings.ORDER_START_SIZE + ((abs(index) - 1) * settings.ORDER_STEP_SIZE)
 
         if settings.MANAGE_ORDER_SIZE:
-            quantity = self.contract_balance * settings.ORDER_BALANCE_RATIO
+            #quantity = self.contract_balance * settings.ORDER_BALANCE_RATIO
+            quantity = max(0, min(-self.running_qty, self.contract_balance)) * settings.ORDER_BALANCE_RATIO # to remaining balance
 
         if index>0: # sell
             quantity = int(min(quantity, self.running_qty - settings.MIN_POSITION))                
