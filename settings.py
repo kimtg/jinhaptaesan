@@ -107,7 +107,7 @@ CHECK_POSITION_LIMITS = True
 #MAX_POSITION = 0
 
 # POSITION_MULTIPLIER affects MIN_POSITION and MAX_POSITION (in USD Quantity)
-POSITION_MULTIPLIER = 10
+POSITION_MULTIPLIER = 5
 
 # If True, will only send orders that rest in the book (ExecInst: ParticipateDoNotInitiate).
 # Use to guarantee a maker rebate.
@@ -134,6 +134,9 @@ API_REST_INTERVAL = 1
 API_ERROR_INTERVAL = 10
 #TIMEOUT = 7
 TIMEOUT = 30
+
+# How often to restart the market maker (in seconds). Force restart (hang protection)
+RESTART_INTERVAL = 60 * 60 * 2
 
 # If we're doing a dry run, use these numbers for BTC balances
 #DRY_BTC = 50

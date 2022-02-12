@@ -298,8 +298,7 @@ class OrderManager:
         # Back off if our spread is too small.
         self.min_spread_buy = self.min_spread_sell = settings.MIN_SPREAD / 2
         if settings.MANAGE_INVENTORY: # inventory management
-            #inventory_ratio = abs(self.running_qty - self.ideal_qty) / abs(self.neutral_qty)
-            inventory_ratio = abs(self.running_qty - self.ideal_qty) / abs(self.neutral_qty) * (settings.ORDER_BALANCE_RATIO * 10)
+            inventory_ratio = abs(self.running_qty - self.ideal_qty) / abs(self.neutral_qty)
             skew = 1 + inventory_ratio * (settings.MANAGE_INVENTORY_SKEW - 1) # gradual skew according to inventory
             if self.running_qty < self.ideal_qty:
                 self.min_spread_sell = settings.MIN_SPREAD * skew / (skew + 1)
@@ -594,6 +593,9 @@ class OrderManager:
         sys.exit()
 
     def run_loop(self):
+        q=threading.Timer(settings.RESTART_INTERVAL, os._exit, [0]) # force restart (hang protection)
+        q.start()
+
         while True:
             sys.stdout.write("-----\n")
             sys.stdout.flush()
