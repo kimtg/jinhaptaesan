@@ -617,7 +617,7 @@ class OrderManager:
 #        logger.info("Restarting the market maker...")
 #        os.execv(sys.executable, [sys.executable] + sys.argv)
         logger.info("Exiting the market maker...")
-        exit() # You have to wrap this program in an iteration in the outer program.
+        os._exit(0) # You have to wrap this program in an iteration in the outer program.
 
 #
 # Helpers
