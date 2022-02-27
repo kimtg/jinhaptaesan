@@ -438,7 +438,7 @@ class OrderManager:
                     sells_matched += 1
                 
                 # relist_interval = settings.RELIST_INTERVAL
-                relist_interval = settings.MIN_SPREAD * 2
+                relist_interval = settings.MIN_SPREAD
 
                 # Found an existing order. Do we need to amend it?
                 if desired_order['orderQty'] != order['leavesQty'] or (
