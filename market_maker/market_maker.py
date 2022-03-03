@@ -247,8 +247,8 @@ class OrderManager:
         tickLog = self.exchange.get_instrument()['tickLog']
         
         logger.info('markPrice: %s' % self.markPrice)        
-        logger.info("Current Contract Balance: %.2f" % self.contract_balance) #####
-        logger.info("Current XBT Balance: %.6f" % self.balance)
+        logger.info("Current Contract Balance: %.2f USD" % self.contract_balance) #####
+        logger.info("Current XBT Balance: %.6f XBT" % self.balance)
         logger.info("Current Contract Position: %d" % self.running_qty)
         if settings.CHECK_POSITION_LIMITS:
             logger.info("Position limits: %d/%d" % (settings.MIN_POSITION, settings.MAX_POSITION))
