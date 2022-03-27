@@ -425,6 +425,9 @@ class OrderManager:
         existing_orders = self.exchange.get_orders()
         #####
         markPrice = self.exchange.get_instrument()['markPrice']
+        
+        last_order_buy = None
+        last_order_sell = None
 
         # Check all existing orders and match them up with what we want to place.
         # If there's an open one, we might be able to amend it to fit what we want.
@@ -433,9 +436,11 @@ class OrderManager:
                 if order['side'] == 'Buy':
                     desired_order = buy_orders[buys_matched]
                     buys_matched += 1
+                    last_order_buy = order
                 else:
                     desired_order = sell_orders[sells_matched]
                     sells_matched += 1
+                    last_order_sell = order
                 
                 # relist_interval = settings.RELIST_INTERVAL
                 relist_interval = settings.MIN_SPREAD
@@ -461,13 +466,31 @@ class OrderManager:
                 # Will throw if there isn't a desired order to match. In that case, cancel it.
                 to_cancel.append(order)
 
-        while buys_matched < len(buy_orders):
-            to_create.append(buy_orders[buys_matched])
-            buys_matched += 1
+        if buys_matched == 0:
+            while buys_matched < len(buy_orders):
+                to_create.append(buy_orders[buys_matched])
+                buys_matched += 1
+        else:
+            # To avoid crowding, keep a distance from the furthest price.
+            price_new = last_order_buy['price']            
+            while buys_matched < len(buy_orders):
+                price_new /= (1 + self.min_spread_buy)
+                buy_orders[buys_matched]['price'] = price_new
+                to_create.append(buy_orders[buys_matched])
+                buys_matched += 1
 
-        while sells_matched < len(sell_orders):
-            to_create.append(sell_orders[sells_matched])
-            sells_matched += 1
+        if sells_matched == 0:
+            while sells_matched < len(sell_orders):
+                to_create.append(sell_orders[sells_matched])
+                sells_matched += 1
+        else:
+            # To avoid crowding, keep a distance from the furthest price.
+            price_new = last_order_sell['price']            
+            while sells_matched < len(sell_orders):
+                price_new *= (1 + self.min_spread_sell)
+                sell_orders[sells_matched]['price'] = price_new
+                to_create.append(sell_orders[sells_matched])
+                sells_matched += 1
 
         if len(to_amend) > 0:
             for amended_order in reversed(to_amend):
