@@ -475,6 +475,7 @@ class OrderManager:
             price_new = last_order_buy['price']            
             while buys_matched < len(buy_orders):
                 price_new /= (1 + self.min_spread_buy)
+                price_new = math.toNearest(price_new, self.instrument['tickSize'])
                 buy_orders[buys_matched]['price'] = price_new
                 to_create.append(buy_orders[buys_matched])
                 buys_matched += 1
@@ -488,6 +489,7 @@ class OrderManager:
             price_new = last_order_sell['price']            
             while sells_matched < len(sell_orders):
                 price_new *= (1 + self.min_spread_sell)
+                price_new = math.toNearest(price_new, self.instrument['tickSize'])
                 sell_orders[sells_matched]['price'] = price_new
                 to_create.append(sell_orders[sells_matched])
                 sells_matched += 1
