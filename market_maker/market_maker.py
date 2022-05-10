@@ -445,7 +445,7 @@ class OrderManager:
                     desired_order = sell_orders[sells_matched]
                     sells_matched += 1
                     last_order_sell = order
-                    if last_order_buy == None or price > price_highest:
+                    if last_order_sell == None or price > price_highest:
                         price_highest = price
                 
                 # relist_interval = settings.RELIST_INTERVAL
