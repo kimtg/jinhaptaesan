@@ -437,16 +437,16 @@ class OrderManager:
                 if order['side'] == 'Buy':
                     desired_order = buy_orders[buys_matched]
                     buys_matched += 1
+                    if last_order_buy == None or price < price_lowest:
+                        price_lowest = price                    
                     last_order_buy = order
 
-                    if last_order_buy == None or price < price_lowest:
-                        price_lowest = price
                 else:
                     desired_order = sell_orders[sells_matched]
                     sells_matched += 1
-                    last_order_sell = order
                     if last_order_sell == None or price > price_highest:
                         price_highest = price
+                    last_order_sell = order
                 
                 # relist_interval = settings.RELIST_INTERVAL
                 relist_interval = settings.MIN_SPREAD
