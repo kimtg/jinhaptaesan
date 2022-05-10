@@ -433,17 +433,23 @@ class OrderManager:
         # If there's an open one, we might be able to amend it to fit what we want.
         for order in existing_orders:
             try:
+                price = order['price']
                 if order['side'] == 'Buy':
                     desired_order = buy_orders[buys_matched]
                     buys_matched += 1
                     last_order_buy = order
+
+                    if last_order_buy == None or price < price_lowest:
+                        price_lowest = price
                 else:
                     desired_order = sell_orders[sells_matched]
                     sells_matched += 1
                     last_order_sell = order
+                    if last_order_buy == None or price > price_highest:
+                        price_highest = price
                 
                 # relist_interval = settings.RELIST_INTERVAL
-                relist_interval = settings.MIN_SPREAD * 2
+                relist_interval = settings.MIN_SPREAD
 
                 # Found an existing order. Do we need to amend it?
                 if desired_order['orderQty'] != order['leavesQty'] or (
@@ -472,7 +478,7 @@ class OrderManager:
                 buys_matched += 1
         else:
             # To avoid crowding, keep a distance from the furthest price.
-            price_new = last_order_buy['price']            
+            price_new = price_lowest
             while buys_matched < len(buy_orders):
                 price_new /= (1 + self.min_spread_buy)
                 price_new = math.toNearest(price_new, self.instrument['tickSize'])
@@ -486,7 +492,7 @@ class OrderManager:
                 sells_matched += 1
         else:
             # To avoid crowding, keep a distance from the furthest price.
-            price_new = last_order_sell['price']            
+            price_new = price_highest
             while sells_matched < len(sell_orders):
                 price_new *= (1 + self.min_spread_sell)
                 price_new = math.toNearest(price_new, self.instrument['tickSize'])
