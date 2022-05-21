@@ -428,8 +428,8 @@ class OrderManager:
         
         last_order_buy = None
         last_order_sell = None
-        buy_amend_needed = False
-        sell_amend_needed = False
+        buy_price_highest = None
+        sell_price_lowest = None
 
         # Check all existing orders and match them up with what we want to place.
         # If there's an open one, we might be able to amend it to fit what we want.
@@ -470,12 +470,12 @@ class OrderManager:
                 to_cancel.append(order)
 
         # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
-        if buy_price_highest < self.markPrice / (1 + self.min_spread_buy * 2):
+        if buy_price_highest and buy_price_highest < self.markPrice / (1 + self.min_spread_buy * 2):
             order = buy_lowest_order
             price_new = math.toNearest(buy_price_highest * (1 + self.min_spread_buy), self.instrument['tickSize'])
             to_amend.append({'orderID': order['orderID'], 'orderQty': order['leavesQty'],
                             'price': price_new, 'side': order['side']})
-        elif sell_price_lowest > self.markPrice * (1 + self.min_spread_sell * 2):
+        elif sell_price_lowest and sell_price_lowest > self.markPrice * (1 + self.min_spread_sell * 2):
             order = sell_highest_order
             price_new = math.toNearest(sell_price_lowest / (1 + self.min_spread_sell), self.instrument['tickSize'])
             to_amend.append({'orderID': order['orderID'], 'orderQty': order['leavesQty'],
