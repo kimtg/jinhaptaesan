@@ -437,7 +437,7 @@ class OrderManager:
             try:
                 price = order['price']
                 if order['side'] == 'Buy':
-                    desired_order = buy_orders[buys_matched]
+                    # desired_order = buy_orders[buys_matched]
                     buys_matched += 1
                     if last_order_buy == None or price < price_lowest:
                         price_lowest = price
@@ -447,7 +447,7 @@ class OrderManager:
                     last_order_buy = order
 
                 else:
-                    desired_order = sell_orders[sells_matched]
+                    # desired_order = sell_orders[sells_matched]
                     sells_matched += 1
                     if last_order_sell == None or price > price_highest:
                         price_highest = price
@@ -457,13 +457,13 @@ class OrderManager:
                     last_order_sell = order
                 
                 # relist_interval = settings.RELIST_INTERVAL
-                relist_interval = settings.MIN_SPREAD
+                # relist_interval = settings.MIN_SPREAD
 
                 # Found an existing order. Do we need to amend it?
                 # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
-                if order['side'] == 'Buy' and buy_price_highest == price and order['price'] < desired_order['price'] / (1 + relist_interval):
+                if order['side'] == 'Buy' and buy_price_highest == price and order['price'] < self.markPrice / (1 + self.min_spread_buy * 2):
                     buy_amend_needed = True
-                elif order['side'] == 'Sell' and sell_price_lowest == price and order['price'] > desired_order['price'] * (1 + relist_interval):
+                elif order['side'] == 'Sell' and sell_price_lowest == price and order['price'] > self.markPrice * (1 + self.min_spread_sell * 2):
                     sell_amend_needed = True
 
                 # buy order is above markPrice or sell order is below markPrice #####
