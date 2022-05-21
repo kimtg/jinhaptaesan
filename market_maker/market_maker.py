@@ -455,16 +455,6 @@ class OrderManager:
                     if last_order_buy == None or price < sell_price_lowest:
                         sell_price_lowest = price
                     last_order_sell = order
-                
-                # relist_interval = settings.RELIST_INTERVAL
-                # relist_interval = settings.MIN_SPREAD
-
-                # Found an existing order. Do we need to amend it?
-                # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
-                if order['side'] == 'Buy' and buy_price_highest == price and order['price'] < self.markPrice / (1 + self.min_spread_buy * 2):
-                    buy_amend_needed = True
-                elif order['side'] == 'Sell' and sell_price_lowest == price and order['price'] > self.markPrice * (1 + self.min_spread_sell * 2):
-                    sell_amend_needed = True
 
                 # buy order is above markPrice or sell order is below markPrice #####
                 if settings.CONSIDER_MARK_PRICE:
@@ -479,12 +469,13 @@ class OrderManager:
                 # Will throw if there isn't a desired order to match. In that case, cancel it.
                 to_cancel.append(order)
 
-        if buy_amend_needed:
+        # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
+        if buy_price_highest < self.markPrice / (1 + self.min_spread_buy * 2):
             order = buy_lowest_order
             price_new = math.toNearest(buy_price_highest * (1 + self.min_spread_buy), self.instrument['tickSize'])
             to_amend.append({'orderID': order['orderID'], 'orderQty': order['leavesQty'],
                             'price': price_new, 'side': order['side']})
-        elif sell_amend_needed:
+        elif sell_price_lowest > self.markPrice * (1 + self.min_spread_sell * 2):
             order = sell_highest_order
             price_new = math.toNearest(sell_price_lowest / (1 + self.min_spread_sell), self.instrument['tickSize'])
             to_amend.append({'orderID': order['orderID'], 'orderQty': order['leavesQty'],
