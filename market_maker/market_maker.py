@@ -233,7 +233,7 @@ class OrderManager:
         self.reset()
 
     def reset(self):
-        self.exchange.cancel_all_orders()
+        # self.exchange.cancel_all_orders()
         self.sanity_check()
         self.print_status()
 
@@ -428,6 +428,8 @@ class OrderManager:
         
         last_order_buy = None
         last_order_sell = None
+        buy_amend_needed = False
+        sell_amend_needed = False
 
         # Check all existing orders and match them up with what we want to place.
         # If there's an open one, we might be able to amend it to fit what we want.
@@ -438,7 +440,10 @@ class OrderManager:
                     desired_order = buy_orders[buys_matched]
                     buys_matched += 1
                     if last_order_buy == None or price < price_lowest:
-                        price_lowest = price                    
+                        price_lowest = price
+                        buy_lowest_order = order
+                    if last_order_buy == None or price > buy_price_highest:
+                        buy_price_highest = price
                     last_order_buy = order
 
                 else:
@@ -446,31 +451,44 @@ class OrderManager:
                     sells_matched += 1
                     if last_order_sell == None or price > price_highest:
                         price_highest = price
+                        sell_highest_order = order
+                    if last_order_buy == None or price < sell_price_lowest:
+                        sell_price_lowest = price
                     last_order_sell = order
                 
                 # relist_interval = settings.RELIST_INTERVAL
                 relist_interval = settings.MIN_SPREAD
 
                 # Found an existing order. Do we need to amend it?
-                if desired_order['orderQty'] != order['leavesQty'] or (
-                    # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
-                    desired_order['price'] != order['price'] and
-                    abs((desired_order['price'] / order['price']) - 1) > relist_interval):                
-                        to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
-                                     'price': desired_order['price'], 'side': order['side']})
-                else:
-                    # buy order is above markPrice or sell order is below markPrice #####
-                    if settings.CONSIDER_MARK_PRICE:
-                        if order['side'] == 'Buy' and order['price'] > markPrice:
-                            to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
-                                             'price': math.toNearest(markPrice - self.instrument['tickSize'] / 2, self.instrument['tickSize']), 'side': order['side']})
-                        elif order['side'] == 'Sell' and order['price'] < markPrice:
-                            to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
-                                             'price': math.toNearest(markPrice + self.instrument['tickSize'] / 2, self.instrument['tickSize']), 'side': order['side']})
+                # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
+                if order['side'] == 'Buy' and buy_price_highest == price and order['price'] < desired_order['price'] / (1 + relist_interval):
+                    buy_amend_needed = True
+                elif order['side'] == 'Sell' and sell_price_lowest == price and order['price'] > desired_order['price'] * (1 + relist_interval):
+                    sell_amend_needed = True
+
+                # buy order is above markPrice or sell order is below markPrice #####
+                if settings.CONSIDER_MARK_PRICE:
+                    if order['side'] == 'Buy' and order['price'] > markPrice:
+                        to_amend.append({'orderID': order['orderID'], 'orderQty': order['leavesQty'],
+                                            'price': math.toNearest(markPrice - self.instrument['tickSize'] / 2, self.instrument['tickSize']), 'side': order['side']})
+                    elif order['side'] == 'Sell' and order['price'] < markPrice:
+                        to_amend.append({'orderID': order['orderID'], 'orderQty': order['leavesQty'],
+                                            'price': math.toNearest(markPrice + self.instrument['tickSize'] / 2, self.instrument['tickSize']), 'side': order['side']})
 
             except IndexError:
                 # Will throw if there isn't a desired order to match. In that case, cancel it.
                 to_cancel.append(order)
+
+        if buy_amend_needed:
+            order = buy_lowest_order
+            price_new = math.toNearest(buy_price_highest * (1 + self.min_spread_buy), self.instrument['tickSize'])
+            to_amend.append({'orderID': order['orderID'], 'orderQty': order['leavesQty'],
+                            'price': price_new, 'side': order['side']})
+        elif sell_amend_needed:
+            order = sell_highest_order
+            price_new = math.toNearest(sell_price_lowest / (1 + self.min_spread_sell), self.instrument['tickSize'])
+            to_amend.append({'orderID': order['orderID'], 'orderQty': order['leavesQty'],
+                            'price': price_new, 'side': order['side']})
 
         if buys_matched == 0:
             while buys_matched < len(buy_orders):
