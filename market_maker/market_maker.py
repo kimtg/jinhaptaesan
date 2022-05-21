@@ -452,7 +452,7 @@ class OrderManager:
                     if last_order_sell == None or price > price_highest:
                         price_highest = price
                         sell_highest_order = order
-                    if last_order_buy == None or price < sell_price_lowest:
+                    if last_order_sell == None or price < sell_price_lowest:
                         sell_price_lowest = price
                     last_order_sell = order
 
