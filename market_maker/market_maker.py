@@ -438,6 +438,8 @@ class OrderManager:
                 price = order['price']
                 if order['side'] == 'Buy':
                     # desired_order = buy_orders[buys_matched]
+                    if buys_matched >= len(buy_orders):
+                        to_cancel.append(order)
                     buys_matched += 1
                     if last_order_buy == None or price < price_lowest:
                         price_lowest = price
@@ -445,9 +447,10 @@ class OrderManager:
                     if last_order_buy == None or price > buy_price_highest:
                         buy_price_highest = price
                     last_order_buy = order
-
                 else:
                     # desired_order = sell_orders[sells_matched]
+                    if sells_matched >= len(sell_orders):
+                        to_cancel.append(order)                    
                     sells_matched += 1
                     if last_order_sell == None or price > price_highest:
                         price_highest = price
