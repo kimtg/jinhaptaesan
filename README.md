@@ -34,7 +34,7 @@ It is free to use and modify for your own strategies. It provides the following:
 ## Getting Started
 
 1. Create a [Testnet BitMEX Account](https://testnet.bitmex.com) and [deposit some TBTC](https://testnet.bitmex.com/app/deposit).
-2. Install: Clone this repository. It is strongly recommeded to use a virtualenv. (`virtualenv .`)
+2. Install: Clone this repository. It is strongly recommeded to use a virtualenv. (`python3 -m venv venv`)
 3. Install packages: `pip install -r requirements.txt`
 4. Edit settings.py to add your [BitMEX API Key and Secret](https://testnet.bitmex.com/app/apiKeys) and change bot parameters.
     * Note that user/password authentication is not supported.

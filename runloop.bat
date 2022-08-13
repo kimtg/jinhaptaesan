@@ -1,5 +1,5 @@
 rem market maker for www.bitmex.com
-call Scripts\activate
+call venv\Scripts\activate
 :start
 python marketmaker
 goto start
