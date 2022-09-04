@@ -299,13 +299,11 @@ class OrderManager:
         self.min_spread_buy = self.min_spread_sell = settings.MIN_SPREAD / 2
         if settings.MANAGE_INVENTORY: # inventory management
             inventory_ratio = abs(self.running_qty - self.ideal_qty) / abs(self.neutral_qty)
-            skew = 1 + inventory_ratio * (settings.MANAGE_INVENTORY_SKEW - 1) # gradual skew according to inventory
+            skew = (inventory_ratio + 1) * settings.MANAGE_INVENTORY_SKEW # gradual skew according to inventory
             if self.running_qty < self.ideal_qty:
-                self.min_spread_sell = settings.MIN_SPREAD * skew / (skew + 1)
-                self.min_spread_buy = settings.MIN_SPREAD * 1 / (skew + 1)
+                self.min_spread_sell = (settings.MIN_SPREAD / 2) * skew
             elif self.running_qty > self.ideal_qty:
-                self.min_spread_buy = settings.MIN_SPREAD * skew / (skew + 1)
-                self.min_spread_sell = settings.MIN_SPREAD * 1 / (skew + 1)
+                self.min_spread_buy = (settings.MIN_SPREAD / 2) * skew
 
         if self.start_position_buy * (1.00 + self.min_spread_buy + self.min_spread_sell) > self.start_position_sell:
             self.start_position_buy *= (1.00 - self.min_spread_buy)
